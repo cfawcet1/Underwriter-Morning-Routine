@@ -51,9 +51,6 @@ def run(lead_id: str, fields: dict[str, Any]) -> LeadState:
     """
     findings: list[EscalationPackage] = []
 
-    # --- Field-level triage against registry ---
-    triage_results = _triage_fields(fields)
-
     # --- Playbook page traversal ---
     # Pages are evaluated independently.
     # Each returns an EscalationPackage or None if clean.
@@ -69,6 +66,19 @@ def run(lead_id: str, fields: dict[str, Any]) -> LeadState:
     pc9_10_finding = pc9_10_playbook.evaluate(lead_id, fields)
     if pc9_10_finding:
         findings.append(pc9_10_finding)
+
+    # --- Field-level triage against registry ---
+    # A field a playbook page already evaluated is excluded here — the
+    # page's own TriageResult encodes more specific business logic
+    # (e.g. occupancy.py marks a missing dwelling_use_type non-blocking,
+    # "ask after the quote goes out") than the generic registry-driven
+    # triage below could know, and must not be overridden by it.
+    covered_fields = {
+        t.field_name
+        for finding in findings
+        for t in finding.triage_results
+    }
+    triage_results = _triage_fields(fields, exclude=covered_fields)
 
     # --- Resolve dominant decision state ---
     dominant_state = _resolve_dominant_state(findings)
@@ -108,16 +118,23 @@ def run(lead_id: str, fields: dict[str, Any]) -> LeadState:
     )
 
 
-def _triage_fields(fields: dict[str, Any]) -> list[TriageResult]:
+def _triage_fields(
+    fields: dict[str, Any],
+    exclude: set[str] = frozenset(),
+) -> list[TriageResult]:
     """
     Runs every field in the lead against the registry triage rules.
     Returns a list of TriageResult for fields that need action.
-    Skips fields that are present and valid.
+    Skips fields that are present and valid, and any field in
+    `exclude` — already evaluated by a playbook page.
     """
     results: list[TriageResult] = []
     reg = registry_fields()
 
     for field_name, field_meta in reg.items():
+        if field_name in exclude:
+            continue
+
         value = fields.get(field_name)
 
         # Check conditional requirements
