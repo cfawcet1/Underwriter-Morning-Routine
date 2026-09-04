@@ -38,3 +38,16 @@ class LLMClient(ABC):
             - Whether an email is warranted and what it should say
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def complete(self, prompt: str) -> str:
+        """
+        Sends a raw text prompt to the LLM and returns its completion.
+
+        Used by callers that need free-form LLM output not bound to a
+        LeadState — currently only the qualitative eval judge
+        (eval/qualitative/evaluator.py), which scores the agent's
+        reasoning against versioned criteria rather than reasoning
+        over a lead itself.
+        """
+        raise NotImplementedError

@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from api.services.lead_service import record_override
-from api.services.mail_service import send_email
+from api.services.mail_service import send_email, get_emails
 
 router = APIRouter()
 
@@ -44,6 +44,15 @@ def send_followup_email(payload: EmailPayload, request: Request) -> dict:
     Sends the outbound follow-up email via the mock mailbox service.
     Records whether the underwriter edited the agent draft.
     That edit rate is an eval signal.
+
+    Idempotent per lead — a lead gets exactly one follow-up email, so
+    a UI double-click or retry can't put two emails in front of the
+    same producer.
     """
+    if get_emails(payload.lead_id):
+        raise HTTPException(
+            status_code=409,
+            detail=f"An email has already been sent for lead {payload.lead_id}.",
+        )
     result = send_email(payload.model_dump())
     return {"status": "sent", "lead_id": payload.lead_id}

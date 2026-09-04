@@ -25,6 +25,7 @@ def build_evaluator_prompt(
     """
     expected_state = ground_truth.get("expected_decision_state")
     expected_types = ground_truth.get("expected_incompleteness_types", [])
+    expected_email = ground_truth.get("expected_email_warranted", False)
     archetype = ground_truth.get("archetype")
     gt_notes = ground_truth.get("notes", "")
 
@@ -69,6 +70,7 @@ GROUND TRUTH NOTES: {gt_notes}
 EXPECTED DECISION STATE: {expected_state}
 ACTUAL DECISION STATE: {actual_state}
 EXPECTED INCOMPLETENESS TYPES: {expected_types}
+EXPECTED EMAIL WARRANTED: {expected_email}
 
 --- AGENT OUTPUT ---
 
