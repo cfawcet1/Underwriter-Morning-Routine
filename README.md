@@ -132,7 +132,7 @@ ANTHROPIC_API_KEY=sk-... python -m api.main
 
 ### Frontend
 
-The underwriter-facing surface lives outside this repo, as a [v0](https://v0.dev) artifact: **[FRONTEND_V0_LINK_HERE]**. It talks to whichever backend you have running above (local, tunneled, or deployed) rather than shipping as code in this repo.
+The underwriter-facing surface is not implemented as code in this repo. It's represented illustratively by a [v0](https://v0.dev) artifact deployed at **[underwriting-queue.vercel.app](https://underwriting-queue.vercel.app/)** — a visual mockup of what the queue view could look like. It does not call this API or any backend; it's a design reference, not a working integration.
 
 ---
 
