@@ -1,0 +1,77 @@
+{
+  "version": "1.0.0",
+  "note": "Ground truth for deterministic eval. Each entry documents the archetype, expected incompleteness classifications, and correct decision state for a fixture lead. The eval checks agent output against these values.",
+  "fixtures": {
+    "FIXTURE-CLEAN-001": {
+      "path": "clean/lead_001.json",
+      "archetype": "clean_primary",
+      "difficulty": "easy",
+      "expected_hard_stops": [],
+      "expected_incompleteness_types": [],
+      "expected_decision_state": "ready_to_quote",
+      "expected_email_warranted": false,
+      "notes": "All required fields present. No conflicts. Clean write."
+    },
+    "FIXTURE-CLEAN-002": {
+      "path": "clean/lead_002.json",
+      "archetype": "clean_pool",
+      "difficulty": "easy",
+      "expected_hard_stops": [],
+      "expected_incompleteness_types": [],
+      "expected_decision_state": "ready_to_quote",
+      "expected_email_warranted": false,
+      "notes": "Inground pool with fenced security. All required fields present."
+    },
+    "FIXTURE-CLEAN-003": {
+      "path": "clean/lead_003.json",
+      "archetype": "clean_str",
+      "difficulty": "medium",
+      "expected_hard_stops": [],
+      "expected_incompleteness_types": [],
+      "expected_decision_state": "conditionally_bindable",
+      "expected_email_warranted": false,
+      "expected_mitigation_conditions": [
+        "Write with 15% surcharge.",
+        "Attach STR endorsement."
+      ],
+      "notes": "Short-term rental with primary Stand policy. Conditionally bindable per occupancy flow."
+    },
+    "FIXTURE-EDGE-004": {
+      "path": "edge/lead_004.json",
+      "archetype": "electrical_hazard",
+      "difficulty": "hard",
+      "expected_hard_stops": [
+        "electrical_panel_brand",
+        "has_knob_and_tube_wiring"
+      ],
+      "expected_incompleteness_types": [],
+      "expected_decision_state": "decline",
+      "expected_email_warranted": false,
+      "notes": "Hard stop fires on Federal Pacific panel and knob and tube wiring. Scanner catches this. Traverser and reasoning do not run. No email generated."
+    },
+    "FIXTURE-EDGE-005": {
+      "path": "edge/lead_005.json",
+      "archetype": "pc_9_10_rural",
+      "difficulty": "hard",
+      "expected_hard_stops": [],
+      "expected_incompleteness_types": [
+        "missing_system_owned"
+      ],
+      "expected_decision_state": "decline",
+      "expected_email_warranted": false,
+      "notes": "Protection class null defaults to 9. Road access limited — decline fires before water source assessment. System-owned field — agent derives, does not email producer."
+    },
+    "FIXTURE-EDGE-006": {
+      "path": "edge/lead_006.json",
+      "archetype": "occupancy_conflict",
+      "difficulty": "hard",
+      "expected_hard_stops": [],
+      "expected_incompleteness_types": [
+        "conflict"
+      ],
+      "expected_decision_state": "refer",
+      "expected_email_warranted": false,
+      "notes": "Claims primary residence but unoccupied 5 months — contradiction. No email resolves a contradiction. Routes to refer with precise escalation package."
+    }
+  }
+}

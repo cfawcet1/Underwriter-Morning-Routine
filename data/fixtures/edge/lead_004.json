@@ -1,18 +1,17 @@
 {
-  "lead_id": "LEAD-2026-0418",
-  "received_at": "2026-06-25T07:42:11Z",
-  "source": "agent_portal",
+  "lead_id": "FIXTURE-EDGE-004",
+  "received_at": "2026-06-25T08:00:00Z",
+  "source": "fixture",
+  "archetype": "electrical_hazard",
   "fields": {
     "street_address": "1240 Ridgecrest Rd",
     "city": "Naples",
     "county": "Collier",
     "state": "FL",
     "zip": "34102",
-
     "broker_tier": "Tier 2",
     "has_primary_policy_with_stand": false,
     "listed_for_sale": false,
-
     "first_name": "R.",
     "last_name": "Calloway",
     "residence_held_in_trust": true,
@@ -23,13 +22,11 @@
     "occupation": null,
     "number_of_residents": 2,
     "kyc_score": 82,
-
     "effective_date": "2026-07-15",
     "coverage_a": 650000,
     "coverage_e": "300000",
     "coverage_f": "1000",
     "replacement_cost": null,
-
     "dwelling_type": "Owner Occupied Single Family Residence",
     "dwelling_use_type": "Primary",
     "is_rental": "No",
@@ -43,7 +40,6 @@
     "is_gated_community": false,
     "acreage": 0.5,
     "has_animals": true,
-
     "structure_type": "Single Family",
     "construction_type": "Frame",
     "siding_material": null,
@@ -59,12 +55,10 @@
     "has_knob_and_tube_wiring": true,
     "electrical_panel_brand": "Federal Pacific",
     "electrical_panel_size_amps": null,
-
     "plumbing_age_years": null,
     "water_heater_type": null,
     "water_heater_age_years": null,
     "water_heater_location": null,
-
     "fire_alarm": "Local Alarm",
     "distance_to_fire_department": null,
     "fire_department_type": "Unknown",
@@ -76,7 +70,6 @@
     "alternative_water_source": null,
     "interior_sprinklers": null,
     "physical_barriers": null,
-
     "min_distance_to_neighbor_ft": 12,
     "is_7a_compliant": null,
     "slope_angle_deg": 18,

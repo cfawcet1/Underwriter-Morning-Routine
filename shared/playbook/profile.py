@@ -1,0 +1,114 @@
+"""
+Profile underwriting playbook — FigJam: Profile page.
+Version: 1.0.0
+
+Encodes the KYC decision flow and reputational risk assessment.
+The agent reads from this module. It does not write to it.
+
+Epistemic assumptions encoded here:
+- KYC score is treated as a proxy for relational risk, not a direct measure.
+- The score is downstream of something a human would find by looking.
+- When KYC is borderline or missing, the agent surfaces the gap — it does not resolve it.
+- "Profile skews more favorable / adverse" is a judgment call.
+  It cannot be resolved deterministically. It routes to refer.
+- OSINT instruction (Facebook, Google, lawsuit involvement) is encoded as a
+  required action when KYC is missing — not as an email to the producer.
+  KYC is system-owned. The agent looks. It does not ask.
+"""
+from __future__ import annotations
+from typing import Any
+from shared.ontology import (
+    DecisionState,
+    EscalationPackage,
+    HardStop,
+    TriageResult,
+    IncompletenessType,
+)
+
+
+VERSION = "1.0.0"
+
+# KYC score thresholds derived from FigJam branch conditions
+KYC_ENTRY_THRESHOLD = 5          # score must exceed this to trigger profile review
+KYC_SPOTLIGHT_MAX = 7            # 6-7 in spotlight branch
+KYC_PRIVATE_MAX = 7              # 6-7 private branch
+KYC_HIGH_MIN = 8                 # 8-10 high risk branch
+
+
+def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
+    """
+    Evaluates the Profile flow for a lead.
+    Returns an EscalationPackage if the lead requires referral or decline.
+    Returns None if profile is clean — proceed to next playbook page.
+
+    KYC is system-owned. If missing, the agent assumes worst case and
+    runs the diagram — it does not email the producer.
+    """
+    kyc = fields.get("kyc_score")
+    has_animals = fields.get("has_animals")
+
+    # KYC missing — system-owned, cannot email producer
+    # Assumption: treat as elevated risk, surface for OSINT, refer to UW
+    if kyc is None:
+        return EscalationPackage(
+            lead_id=lead_id,
+            decision_state=DecisionState.REFER,
+            hard_stops=[],
+            triage_results=[
+                TriageResult(
+                    field_name="kyc_score",
+                    incompleteness_type=IncompletenessType.SYSTEM_OWNED,
+                    triage_action="auto_fetch",
+                    blocking=True,
+                    minimum_sufficient=True,
+                )
+            ],
+            what_is_known=[
+                "KYC score is system-owned and could not be retrieved.",
+                "Per playbook: look up name on Facebook and Google.",
+                "Explicitly check for involvement in lawsuits.",
+            ],
+            what_is_unknowable=[
+                "Whether this insured represents reputational risk to Stand "
+                "cannot be determined without OSINT review."
+            ],
+            underwriter_decision_required=(
+                "KYC score is unavailable. OSINT review required before "
+                "this lead can proceed. Does the insured's public profile "
+                "represent reputational risk to Stand?"
+            ),
+            mitigation_conditions=[],
+        )
+
+    # KYC <= 5: below threshold, profile review not triggered
+    if kyc <= KYC_ENTRY_THRESHOLD:
+        return None
+
+    # KYC 6-7 in the spotlight: exclude liability
+    # Defense w/in limits, social media, libel/slander exclusions required
+    # If any exclusion is deal killer -> decline
+    if KYC_ENTRY_THRESHOLD < kyc <= KYC_SPOTLIGHT_MAX:
+        return EscalationPackage(
+            lead_id=lead_id,
+            decision_state=DecisionState.REFER,
+            hard_stops=[],
+            triage_results=[],
+            what_is_known=[
+                f"KYC score {kyc} — in spotlight range (6-7).",
+                "Required exclusions: Social Media, Libel/Slander, "
+                "Defense w/in Limits.",
+            ],
+            what_is_unknowable=[
+                "Whether required exclusions are a deal killer for this "
+                "insured cannot be determined without underwriter review."
+            ],
+            underwriter_decision_required=(
+                f"KYC score {kyc} triggers the in-spotlight branch. "
+                f"Add Social Media, Libel/Slander, and Defense w/in Limits "
+                f"exclusions. Are any of these exclusions a deal killer "
+                f"for this insured?"
+            ),
+            mitigation_conditions=[],
+        )
+
+    # KYC 6-7 private: exclude liability, premises liability

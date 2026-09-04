@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+
+  # --- Provided sim harness services ---
+  # These are Stand's services — do not modify them.
+  # Source: ../stand-uw-sim/docker-compose.yml
+
+  leadgen:
+    build:
+      context: ../stand-uw-sim/leadgen
+    ports:
+      - "8002:8000"
+    volumes:
+      - ../stand-uw-sim/data:/data
+      - ../stand-uw-sim/shared:/app/shared
+    environment:
+      - DATABASE_URL=sqlite:////data/leadgen.db
+
+  mailbox:
+    build:
+      context: ../stand-uw-sim/mailbox
+    ports:
+      - "8001:8000"
+    volumes:
+      - ../stand-uw-sim/data:/data
+      - ../stand-uw-sim/shared:/app/shared
+    environment:
+      - DATABASE_URL=sqlite:////data/mailbox.db
+
+  # --- Your backend ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ../stand-uw-sim/shared:/app/shared
+    environment:
+      - MAILBOX_URL=http://mailbox:8001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - leadgen
+      - mailbox
