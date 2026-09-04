@@ -40,7 +40,9 @@ Hard stops for electrical systems — Federal Pacific, Stab-Lok, Zinsco, and Cha
 
 ## Architecture Overview
 
-Seven top-level directories. Each owns a single concern and nothing else. `shared/` is the domain model — the typed contracts and versioned playbook that every other layer reads from but never writes to. `agent/` is the reasoning pipeline — scanner, traverser, and LLM reasoning in sequence. `eval/` is the learning loop — deterministic and qualitative tracks running in parallel, feedback path returning underwriter decisions as signal. `api/` is the thin bridge between agent and frontend — routes own no logic, services own the translation. `frontend/` is the underwriter's surface — built for a morning queue workflow, not for a technical audience. `data/` holds the persistence layer and static fixtures. `docker-compose.yml` orchestrates the provided lead generator and mock mailbox services.
+Five top-level directories. Each owns a single concern and nothing else. `shared/` is the domain model — the typed contracts and versioned playbook that every other layer reads from but never writes to. `agent/` is the reasoning pipeline — scanner, traverser, and LLM reasoning in sequence. `eval/` is the learning loop — deterministic and qualitative tracks running in parallel, feedback path returning underwriter decisions as signal. `api/` is the thin bridge between agent and frontend — routes own no logic, services own the translation. `data/` holds the persistence layer and static fixtures. `docker-compose.yml` orchestrates the provided lead generator and mock mailbox services.
+
+The underwriter-facing surface is not part of this repo — it's a v0 artifact. See [Frontend](#frontend) below.
 
 If you can't infer the architecture from the folder structure, the folder structure is wrong. The README explains the reasoning behind the design. The folders explain the design itself.
 
@@ -72,6 +74,8 @@ The standard three-exit model — decline, refer, bind — is insufficient for t
 
 **Conditionally bindable pending mitigation.** The lead is not a clean write and not a decline. It can be written if specific conditions are satisfied — a dry hydrant installed within the underwriting period, centrally monitored sprinklers, a Knox box, a central station fire alarm. The mitigation tracker holds these conditions and advances the lead as they are confirmed.
 
+These four values are the only members of `DecisionState` — the ontology never grows a fifth. The queue view (`GET /queue/`) does add one more *operational* bucket on top of them, `awaiting_response`, for any lead with a follow-up email pending: a lead can be internally `ready_to_quote` at the playbook level while still missing a field no playbook page has an opinion on (e.g. a bare `last_name`), and that lead needs to show up as "waiting on the producer," not "ready to quote." That's a display/bucketing distinction, not a new business state.
+
 ---
 
 ## Eval Loop
@@ -90,6 +94,10 @@ Three independent scores per lead — classification accuracy, action appropriat
 
 ## How to Run
 
+### Prerequisites
+
+This repo does not vendor the provided sim harness — it expects it checked out as a **sibling directory**, `../sim-harness` relative to this repo's root. `docker-compose.yml` builds `leadgen` and `mailbox` directly from that path, and mounts `../sim-harness/shared` into all three containers so they share one copy of the field registry and schema.
+
 ### Requirements
 
 ```bash
@@ -102,9 +110,17 @@ pip install -r requirements.txt
 docker-compose up
 ```
 
+This starts all three services — `leadgen`, `mailbox`, and this repo's own `api` — together, with `api` bound to host port 8000. If you only want the provided services running so you can iterate on the API locally (next two sections), start those two instead:
+
+```bash
+docker-compose up leadgen mailbox
+```
+
 ### Run with mock LLM — no credentials required
 
 ```bash
+python -m api.main
+# or, to force mock even if ANTHROPIC_API_KEY happens to be set:
 python -m api.main --mock
 ```
 
@@ -116,7 +132,7 @@ ANTHROPIC_API_KEY=sk-... python -m api.main
 
 ### Frontend
 
-Deployed on Vercel. Set `NEXT_PUBLIC_API_URL` in `.env.example` to your Railway backend URL or local tunnel address.
+The underwriter-facing surface lives outside this repo, as a [v0](https://v0.dev) artifact: **[FRONTEND_V0_LINK_HERE]**. It talks to whichever backend you have running above (local, tunneled, or deployed) rather than shipping as code in this repo.
 
 ---
 
@@ -128,11 +144,11 @@ Hard stops are deterministic and do not account for Tier 1 broker exceptions tha
 
 The qualitative eval criteria reflect our current epistemic framework for the domain. They will need refinement as underwriter feedback accumulates and the edge case population grows.
 
-Fixtures are static for presentation stability. The provided lead generator is included in docker-compose for development and iteration use.
+Fixtures are static for presentation stability — the eval harness's ground truth (`data/fixtures/manifest.json`) is written against them and does not cover live-generated leads. The provided lead generator is wired in separately via `POST /queue/generate`, which pulls a fresh queue from `leadgen` and triages it, for development and iteration use.
 
 The feedback integrator captures underwriter decisions but does not yet automatically retrain or update the qualitative eval criteria. That integration is the next iteration after the POC.
 
-Replacement cost derivation is stubbed. The field registry marks it as `editableByProducer: false` — in production this would be fetched from a third party valuation service. For the POC the agent flags it as a required derivation and notes it cannot be requested from the producer.
+Replacement cost derivation is not yet implemented. The field registry marks `replacement_cost` as `editableByProducer: false` — in production this would be fetched from a third party valuation service — but no playbook page or triage rule currently references it, so a missing value is not flagged, fetched, or surfaced to the underwriter at all. This is an open gap, not a handled stub.
 
 ---
 
