@@ -5,7 +5,7 @@ Tier 1 broker exception noted in README Known Limitations — deferred.
 """
 from __future__ import annotations
 from typing import Any
-from agent.ontology import HardStop
+from shared.ontology import HardStop
 
 
 INELIGIBLE_PANELS = {

@@ -49,7 +49,7 @@ def run(overrides: list[dict] | None = None) -> dict:
     deterministic_results = []
     qualitative_results = []
 
-    for lead_id, ground_truth in manifest["fixtures"].items():
+    for lead_id, ground_truth in manifest.items():
         difficulty = ground_truth.get("difficulty", "medium")
         archetype = ground_truth.get("archetype", "unknown")
 

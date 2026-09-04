@@ -25,8 +25,8 @@ from shared.ontology import DecisionState, LeadState
 from shared.schema import Lead
 import agent.scanner as scanner
 import agent.traverser as traverser
-from agent.composer.escalation import compose_escalation
-from agent.composer.email import compose_email
+from agent.reasoning.composer.escalation import compose_escalation
+from agent.reasoning.composer.email import compose_email
 from agent.reasoning.llm_client import LLMClient
 
 

@@ -10,7 +10,7 @@ from shared.registry import (
     is_system_owned,
     required_level,
 )
-from agent.ontology import IncompletenessType
+from shared.ontology import IncompletenessType
 
 
 def classify_incompleteness(field_name: str) -> IncompletenessType:

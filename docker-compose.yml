@@ -4,27 +4,31 @@ services:
 
   # --- Provided sim harness services ---
   # These are Stand's services — do not modify them.
-  # Source: ../stand-uw-sim/docker-compose.yml
+  # Source: ../sim-harness/docker-compose.yml
+  # Build context is the sim-harness repo root (each Dockerfile does
+  # `COPY shared ./shared` relative to that root), not the service subdir.
 
   leadgen:
     build:
-      context: ../stand-uw-sim/leadgen
+      context: ../sim-harness
+      dockerfile: leadgen/Dockerfile
     ports:
-      - "8002:8000"
+      - "8002:8080"
     volumes:
-      - ../stand-uw-sim/data:/data
-      - ../stand-uw-sim/shared:/app/shared
+      - ../sim-harness/data:/data
+      - ../sim-harness/shared:/app/shared
     environment:
       - DATABASE_URL=sqlite:////data/leadgen.db
 
   mailbox:
     build:
-      context: ../stand-uw-sim/mailbox
+      context: ../sim-harness
+      dockerfile: mailbox/Dockerfile
     ports:
-      - "8001:8000"
+      - "8001:8080"
     volumes:
-      - ../stand-uw-sim/data:/data
-      - ../stand-uw-sim/shared:/app/shared
+      - ../sim-harness/data:/data
+      - ../sim-harness/shared:/app/shared
     environment:
       - DATABASE_URL=sqlite:////data/mailbox.db
 
@@ -37,9 +41,9 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - ../stand-uw-sim/shared:/app/shared
+      - ../sim-harness/shared:/app/shared
     environment:
-      - MAILBOX_URL=http://mailbox:8001
+      - MAILBOX_URL=http://mailbox:8080
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - leadgen
