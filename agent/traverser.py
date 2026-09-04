@@ -87,8 +87,17 @@ def run(lead_id: str, fields: dict[str, Any]) -> LeadState:
     # Consolidate findings into one escalation package
     escalation = _consolidate(lead_id, dominant_state, findings, triage_results)
 
-    # Determine email warranted and target fields
-    email_fields = _email_target_fields(triage_results)
+    # Determine email warranted and target fields.
+    # Email is only ever warranted when the lead would otherwise be
+    # ready to quote. A decline/refer/conditionally-bindable finding
+    # already routes the lead through a different resolution path, and
+    # the composer never emails to resolve a decline, contradiction, or
+    # unknowable condition (see agent/reasoning/composer/email.py) — so
+    # a non-clean dominant state must never also carry an email.
+    if dominant_state == DecisionState.READY_TO_QUOTE:
+        email_fields = _email_target_fields(triage_results)
+    else:
+        email_fields = []
 
     return LeadState(
         lead_id=lead_id,

@@ -71,7 +71,7 @@
     "interior_sprinklers": null,
     "physical_barriers": null,
     "min_distance_to_neighbor_ft": 40,
-    "is_7a_compliant": null,
+    "is_7a_compliant": true,
     "slope_angle_deg": 8.0,
     "roof_classification": "Class A",
     "p_f": 0.08,
