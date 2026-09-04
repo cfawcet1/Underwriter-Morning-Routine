@@ -12,8 +12,9 @@ Epistemic assumptions encoded here:
   required post-quote follow-up flag.
 - Vacant and Unoccupied are distinct categories doing different
   underwriting work. The agent does not conflate them.
-- Short-term rentals with primary residence claim is a contradiction —
-  routes to refer, not email.
+- Short-term rentals with primary residence claim is a contradiction
+  unless it is resolved by an existing primary policy with Stand — in
+  that case it is the documented STR happy path, not a conflict.
 - Duration of non-occupancy is the operative variable for the For Sale
   branch. Less than 60 days vs greater than 60 days produces
   materially different modification requirements.
@@ -85,7 +86,7 @@ def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
         )
 
     # Contradiction detection — owner-occupied claim conflicts with signals
-    if _is_contradictory(dwelling_use, is_rental, months_unoccupied):
+    if _is_contradictory(dwelling_use, is_rental, months_unoccupied, has_primary):
         return EscalationPackage(
             lead_id=lead_id,
             decision_state=DecisionState.REFER,
@@ -245,14 +246,17 @@ def _is_contradictory(
     dwelling_use: str,
     is_rental: str | None,
     months_unoccupied: int,
+    has_primary: bool,
 ) -> bool:
     """
     Detects the three occupancy conflict variants from archetypes.py:
     - Owner-occupied but unoccupied for months
-    - Primary residence but running short-term rentals
+    - Primary residence but running short-term rentals, with no
+      existing primary policy with Stand to resolve it (if there is
+      one, this is the documented STR happy path below, not a conflict)
     - Owner-occupied but secondary use type
     """
-    if dwelling_use == "Primary" and is_rental == "Short-Term Rentals":
+    if dwelling_use == "Primary" and is_rental == "Short-Term Rentals" and not has_primary:
         return True
     if dwelling_use == "Primary" and months_unoccupied >= 3:
         return True

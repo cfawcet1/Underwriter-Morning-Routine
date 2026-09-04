@@ -5,6 +5,7 @@ This is a structural stand-in — not a simulation of real LLM output.
 Use for pipeline testing and presentation demo stability.
 """
 from __future__ import annotations
+import re
 from shared.ontology import LeadState, DecisionState
 from agent.reasoning.llm_client import LLMClient
 
@@ -72,3 +73,71 @@ class MockLLMClient(LLMClient):
             f"What is known: {known} "
             f"Conditions required before binding: {conditions}"
         )
+
+    def complete(self, prompt: str) -> str:
+        """
+        Deterministic stand-in for a free-form LLM completion.
+
+        Used by the qualitative eval judge (eval/qualitative/evaluator.py).
+        Parses the ground-truth facts eval/qualitative/prompt.py already
+        embeds in the prompt text and returns a response in the same
+        CLASSIFICATION/ACTION/SCOPE/UNKNOWN_UNKNOWNS/OVERALL_SCORE
+        structure a real Claude judge would use, so evaluator.py's
+        parser works identically against either backend. This is a
+        structural comparison, not a simulation of real judgment —
+        UNKNOWN_UNKNOWNS is always NO.
+        """
+        expected_state = _extract(prompt, r"EXPECTED DECISION STATE:\s*(\S+)")
+        actual_state = _extract(prompt, r"ACTUAL DECISION STATE:\s*(\S+)")
+        classification_pass = (
+            expected_state is not None and expected_state == actual_state
+        )
+
+        expected_email = _extract(
+            prompt, r"EXPECTED EMAIL WARRANTED:\s*(True|False)"
+        ) == "True"
+        email_section = _section(prompt, "EMAIL OUTPUT:", "AGENT REASONING:")
+        email_present = "No email generated." not in email_section
+        action_pass = email_present == expected_email
+
+        expected_types = _extract(
+            prompt, r"EXPECTED INCOMPLETENESS TYPES:\s*(\[.*\])"
+        )
+        expects_unknowable = bool(expected_types) and expected_types != "[]"
+        unknowable_section = _section(
+            prompt, "WHAT IS UNKNOWABLE:", "UNDERWRITER DECISION REQUIRED:"
+        )
+        has_unknowable = unknowable_section != "None."
+        scope_pass = (not expects_unknowable) or has_unknowable
+
+        score = sum([
+            0.4 if classification_pass else 0.0,
+            0.3 if action_pass else 0.0,
+            0.3 if scope_pass else 0.0,
+        ])
+
+        return (
+            f"CLASSIFICATION: {'PASS' if classification_pass else 'FAIL'} — "
+            f"expected {expected_state}, got {actual_state}.\n"
+            f"ACTION: {'PASS' if action_pass else 'FAIL'} — "
+            f"expected email_warranted={expected_email}, got {email_present}.\n"
+            f"SCOPE: {'PASS' if scope_pass else 'FAIL'} — "
+            f"{'unknowable conditions surfaced as expected' if scope_pass else 'expected unknowable conditions were not surfaced'}.\n"
+            f"UNKNOWN_UNKNOWNS: NO — mock evaluator performs structural "
+            f"comparison only, not genuine reasoning.\n"
+            f"OVERALL_SCORE: {round(score, 2)}\n"
+        )
+
+
+def _extract(text: str, pattern: str) -> str | None:
+    match = re.search(pattern, text)
+    return match.group(1) if match else None
+
+
+def _section(text: str, start_label: str, end_label: str) -> str:
+    """Returns the trimmed text between two labeled prompt sections."""
+    if start_label not in text:
+        return ""
+    after_start = text.split(start_label, 1)[1]
+    section = after_start.split(end_label, 1)[0] if end_label in after_start else after_start
+    return section.strip()

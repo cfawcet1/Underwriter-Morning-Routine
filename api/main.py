@@ -6,12 +6,14 @@ Routes own no business logic — that lives in services.
 
 Run with mock LLM (no credentials):
     python -m api.main
+    python -m api.main --mock   # forces mock even if ANTHROPIC_API_KEY is set
 
 Run with Anthropic backend:
     ANTHROPIC_API_KEY=sk-... python -m api.main
 """
 from __future__ import annotations
 import os
+import sys
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,9 +62,12 @@ def create_app() -> FastAPI:
 
 def _build_llm_client() -> LLMClient:
     """
-    Returns Anthropic client if API key is present.
-    Falls back to Mock for local runs without credentials.
+    Returns Anthropic client if an API key is present, unless --mock
+    was passed on the command line to force the mock backend. Falls
+    back to Mock for local runs without credentials.
     """
+    if "--mock" in sys.argv:
+        return MockLLMClient()
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if api_key:
         return AnthropicLLMClient(api_key=api_key)

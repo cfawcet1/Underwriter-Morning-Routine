@@ -4,8 +4,9 @@ Reads from static fixtures for presentation stability.
 Thin layer — delegates to lead_service.
 """
 from __future__ import annotations
-from fastapi import APIRouter, Request
-from api.services.lead_service import get_queue
+from typing import Optional
+from fastapi import APIRouter, Request, Query
+from api.services.lead_service import get_queue, generate_live_queue
 
 router = APIRouter()
 
@@ -18,3 +19,19 @@ def read_queue(request: Request) -> dict:
     """
     llm = request.app.state.llm
     return get_queue(llm)
+
+
+@router.post("/generate")
+def generate_queue(
+    request: Request,
+    count: int = Query(default=10, ge=1, le=100),
+    seed: Optional[int] = Query(default=None),
+    difficulty: str = Query(default="mixed"),
+) -> dict:
+    """
+    Pulls a fresh queue from the leadgen service and triages it.
+    Additive to GET / — the fixture-based queue stays the eval
+    harness's ground truth; this is for live development/demo runs.
+    """
+    llm = request.app.state.llm
+    return generate_live_queue(llm, count=count, seed=seed, difficulty=difficulty)

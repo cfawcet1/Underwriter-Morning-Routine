@@ -44,6 +44,7 @@ services:
       - ../sim-harness/shared:/app/shared
     environment:
       - MAILBOX_URL=http://mailbox:8080
+      - LEADGEN_URL=http://leadgen:8080
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - leadgen

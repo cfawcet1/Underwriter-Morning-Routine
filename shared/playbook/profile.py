@@ -28,11 +28,10 @@ from shared.ontology import (
 
 VERSION = "1.0.0"
 
-# KYC score thresholds derived from FigJam branch conditions
-KYC_ENTRY_THRESHOLD = 5          # score must exceed this to trigger profile review
-KYC_SPOTLIGHT_MAX = 7            # 6-7 in spotlight branch
-KYC_PRIVATE_MAX = 7              # 6-7 private branch
-KYC_HIGH_MIN = 8                 # 8-10 high risk branch
+KYC_ENTRY_THRESHOLD = 5
+KYC_SPOTLIGHT_MAX = 7
+KYC_PRIVATE_MAX = 7
+KYC_HIGH_MIN = 8
 
 
 def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
@@ -45,10 +44,7 @@ def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
     runs the diagram — it does not email the producer.
     """
     kyc = fields.get("kyc_score")
-    has_animals = fields.get("has_animals")
 
-    # KYC missing — system-owned, cannot email producer
-    # Assumption: treat as elevated risk, surface for OSINT, refer to UW
     if kyc is None:
         return EscalationPackage(
             lead_id=lead_id,
@@ -80,13 +76,9 @@ def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
             mitigation_conditions=[],
         )
 
-    # KYC <= 5: below threshold, profile review not triggered
     if kyc <= KYC_ENTRY_THRESHOLD:
         return None
 
-    # KYC 6-7 in the spotlight: exclude liability
-    # Defense w/in limits, social media, libel/slander exclusions required
-    # If any exclusion is deal killer -> decline
     if KYC_ENTRY_THRESHOLD < kyc <= KYC_SPOTLIGHT_MAX:
         return EscalationPackage(
             lead_id=lead_id,
@@ -111,4 +103,47 @@ def evaluate(lead_id: str, fields: dict[str, Any]) -> EscalationPackage | None:
             mitigation_conditions=[],
         )
 
-    # KYC 6-7 private: exclude liability, premises liability
+    if KYC_ENTRY_THRESHOLD < kyc <= KYC_PRIVATE_MAX:
+        return EscalationPackage(
+            lead_id=lead_id,
+            decision_state=DecisionState.REFER,
+            hard_stops=[],
+            triage_results=[],
+            what_is_known=[
+                f"KYC score {kyc} — private range (6-7).",
+                "Liability excluded. Premises liability only.",
+            ],
+            what_is_unknowable=[
+                "Whether the profile skews more favorable or adverse "
+                "is a judgment call that cannot be made deterministically."
+            ],
+            underwriter_decision_required=(
+                f"KYC score {kyc} with private profile. Premises liability "
+                f"only applied. Does the overall profile skew more favorable "
+                f"(accept as is) or more adverse (decline)?"
+            ),
+            mitigation_conditions=[],
+        )
+
+    if kyc >= KYC_HIGH_MIN:
+        return EscalationPackage(
+            lead_id=lead_id,
+            decision_state=DecisionState.REFER,
+            hard_stops=[],
+            triage_results=[],
+            what_is_known=[
+                f"KYC score {kyc} — high risk range (8-10).",
+                "Liability excluded.",
+            ],
+            what_is_unknowable=[
+                "Whether liability exclusion is a deal killer for this "
+                "insured requires underwriter judgment."
+            ],
+            underwriter_decision_required=(
+                f"KYC score {kyc}. Liability excluded. Is this exclusion "
+                f"a deal killer for this insured?"
+            ),
+            mitigation_conditions=[],
+        )
+
+    return None

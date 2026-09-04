@@ -32,8 +32,10 @@ class AnthropicLLMClient(LLMClient):
         Returns Claude's reasoning as a string.
         The prompt is built from the ontology — never from raw fields.
         """
-        prompt = build_prompt(lead_state)
+        return self.complete(build_prompt(lead_state))
 
+    def complete(self, prompt: str) -> str:
+        """Sends a raw prompt to Claude and returns its text completion."""
         message = self.client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
